@@ -1,8 +1,8 @@
 // Auth routes: LOCAL app login (admin/user roles) + Google sender connection.
 // ------------------------------------------------------------
-// App access:  POST /auth/setup-admin (first user only, becomes admin)
-//              POST /auth/login  -> browser session (7 days)
+// App access:  POST /auth/login  -> browser session (7 days)
 //              POST /auth/logout -> forget this browser
+// (The default admin is seeded in src/db.js - see README for credentials.)
 // Gmail sender: GET /auth/google, /auth/google/callback (login required)
 //               POST /auth/disconnect (admin only - affects everyone)
 // ------------------------------------------------------------
@@ -11,39 +11,13 @@ const db = require('../db');
 const config = require('../config');
 const googleAuth = require('../services/googleAuth');
 const { encrypt } = require('../utils/crypto');
-const { hashPassword, verifyPassword } = require('../utils/password');
+const { verifyPassword } = require('../utils/password');
 const { info, error } = require('../utils/logger');
 const gate = require('../middleware/requireLogin');
 const router = express.Router();
 
-// Is this a fresh install with no users yet?
-function needsSetup() {
-  return !db.prepare('SELECT id FROM users LIMIT 1').get();
-}
-
-// First visitor creates the admin account (only works when users table is empty).
-router.post('/setup-admin', (req, res) => {
-  if (!needsSetup()) return res.status(403).json({ error: 'Admin already exists. Ask your admin for an account.' });
-  const name = String(req.body.name || '').trim();
-  const email = String(req.body.email || '').trim().toLowerCase();
-  try {
-    if (!name) return res.status(400).json({ error: 'Name required.' });
-    if (!email.includes('@')) return res.status(400).json({ error: 'Valid email required.' });
-    const r = db.prepare("INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')")
-      .run(name, email, hashPassword(req.body.password));
-    req.session.userId = Number(r.lastInsertRowid);
-    req.session.userRole = 'admin';
-    info('First admin created:', email);
-    res.json({ ok: true, role: 'admin' });
-  } catch (e) {
-    if (String(e.message).includes('UNIQUE')) return res.status(400).json({ error: 'That email is taken.' });
-    res.status(400).json({ error: e.message });
-  }
-});
-
 // Local login (email + password).
 router.post('/login', (req, res) => {
-  if (needsSetup()) return res.status(403).json({ error: 'No accounts yet. Create the admin account first.' });
   const email = String(req.body.email || '').trim().toLowerCase();
   const u = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
   if (!u || !verifyPassword(req.body.password || '', u.password_hash)) {
@@ -68,7 +42,6 @@ router.get('/status', (req, res) => {
   const acc = db.prepare('SELECT email, created_at FROM accounts ORDER BY id LIMIT 1').get();
   const me = gate.currentUser(req);
   res.json({
-    needsSetup: needsSetup(),
     loggedIn: Boolean(me),
     role: me ? me.role : null,
     userName: me ? me.name : null,

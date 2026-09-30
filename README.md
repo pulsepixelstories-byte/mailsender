@@ -68,7 +68,7 @@ Stop later: `pkill -f "node src/server.js"`.
 - Connecting the Gmail sender is separate: admin opens Home → Connect Gmail → Allow (Google login). App users then send through it.
 
 ## Use each screen (click path)
-- **Login** (`/`): first time = create admin; then email + password → mail client buttons appear.
+- **Login** (`/`): email + password → mail client buttons appear.
 - **Users** (`users.html`, admin only): list, add (pick role), remove.
 - **Dashboard** (`dashboard.html`): today's sent vs daily cap + recent campaigns.
 - **New campaign** (`wizard.html`): 1 paste sheet link → Find tabs → pick tab → Preview 10 rows. 2 pick Email column. 3 write name/subject/body, click placeholder buttons, Live preview, footer stays. 4 sending settings (buffered 30–90s default; batch 10/batch, 10–25s inside, 15min rest; cap 400; optional window; dry run). 5 Create draft → Send test to myself → open Live page.
