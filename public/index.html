@@ -2,17 +2,37 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Business Mail Sender - Login</title>
+<title>Business Mail Sender</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-<div class="bg-white p-8 rounded shadow max-w-md w-full text-center">
-  <h1 class="text-3xl font-bold">Business Mail Sender</h1>
-  <p class="text-gray-600 my-2">Send Gmail to many people from a Google Sheet — slowly and safely.</p>
-  <p id="status" class="text-sm my-3">Checking...</p>
-  <a id="loginBtn" href="./auth/google" class="inline-block bg-blue-600 text-white px-6 py-3 rounded w-full">Sign in with Google</a>
-  <button id="outBtn" onclick="disconnect()" class="hidden mt-2 text-sm underline text-gray-600">Disconnect</button>
-  <p class="text-xs text-gray-500 mt-3">Only sends to people who agreed to receive email.</p>
+<body class="bg-gray-100 min-h-screen">
+<div class="max-w-3xl mx-auto p-4">
+  <nav class="flex flex-wrap gap-3 text-sm my-2">
+    <b>Home</b>
+    <a href="./dashboard.html" class="underline text-blue-600">Dashboard</a>
+    <a href="./wizard.html" class="underline text-blue-600">New campaign</a>
+    <a href="./reports.html" class="underline text-blue-600">Reports</a>
+    <a href="./settings.html" class="underline text-blue-600">Settings</a>
+  </nav>
+
+  <div class="bg-white p-8 rounded shadow max-w-md mx-auto w-full text-center mt-4">
+    <h1 class="text-3xl font-bold">Business Mail Sender</h1>
+    <p class="text-gray-600 my-2">Send Gmail to many people from a Google Sheet — slowly and safely.</p>
+    <p id="status" class="text-sm my-3">Checking...</p>
+    <a id="loginBtn" href="./auth/google" class="inline-block bg-blue-600 text-white px-6 py-3 rounded w-full">Sign in with Google</a>
+    <button id="outBtn" onclick="disconnect()" class="hidden mt-2 text-sm underline text-gray-600">Disconnect</button>
+    <p class="text-xs text-gray-500 mt-3">Only sends to people who agreed to receive email.</p>
+  </div>
+
+  <!-- Mail client: appears once Gmail is connected -->
+  <div id="client" class="hidden max-w-md mx-auto mt-4">
+    <h2 class="font-bold mb-2">Mail client — what next?</h2>
+    <div class="grid gap-2">
+      <a href="./wizard.html" class="bg-green-600 text-white px-4 py-3 rounded text-center font-bold">+ New campaign (pick sheet → compose → send)</a>
+      <a href="./dashboard.html" class="bg-white px-4 py-3 rounded shadow text-center">Dashboard <span class="text-gray-500 text-sm">(progress, today's count)</span></a>
+      <a href="./reports.html" class="bg-white px-4 py-3 rounded shadow text-center">Reports <span class="text-gray-500 text-sm">(results, CSV, Drive copy)</span></a>
+    </div>
+  </div>
 </div>
 <script src="./app.js"></script>
 <script>
@@ -20,16 +40,18 @@ async function check() {
   const el = document.getElementById('status');
   try {
     const s = await api('/auth/status');
-    if (!s.configured) { el.textContent = 'Not set up yet: ask owner to fill .env Google keys.'; return; }
+    if (!s.configured) { el.textContent = 'Not set up yet: ask owner to fill Google keys.'; return; }
     if (s.connected) {
       el.innerHTML = 'Connected as <b>' + escapeHtml(s.email) + '</b>';
       document.getElementById('loginBtn').textContent = 'Reconnect Google';
       document.getElementById('outBtn').classList.remove('hidden');
+      document.getElementById('client').classList.remove('hidden');
     } else el.textContent = 'Not connected. Click Sign in with Google.';
   } catch (e) { el.textContent = 'Error: ' + e.message; }
 }
 async function disconnect() {
   await api('/auth/disconnect', { method: 'POST' });
+  document.getElementById('client').classList.add('hidden');
   check();
 }
 check();
