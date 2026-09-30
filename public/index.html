@@ -15,74 +15,38 @@
   </div>
 
   <div class="mat-card">
-    <!-- Normal login -->
-    <div id="loginBox" class="hidden">
-      <h2>Log in</h2>
-      <label class="mat-field"><span>Email</span><input id="l_email" class="mat-input" placeholder="Email" /></label>
-      <label class="mat-field"><span>Password</span><input id="l_pass" type="password" class="mat-input" placeholder="Password" /></label>
-      <button onclick="doLogin()" class="mat-btn primary block">Log in</button>
-    </div>
-
+    <h2 style="text-align:center">Log in</h2>
+    <form onsubmit="event.preventDefault(); doLogin();">
+      <label class="mat-field"><span>Email</span>
+        <input id="l_email" class="mat-input" placeholder="Email" autocomplete="username" />
+      </label>
+      <label class="mat-field"><span>Password</span>
+        <input id="l_pass" type="password" class="mat-input" placeholder="Password" autocomplete="current-password" />
+      </label>
+      <button type="submit" class="mat-btn primary block">Log in</button>
+    </form>
     <p id="msg" class="mat-msg" style="text-align:center"></p>
-  </div>
-
-  <!-- Mail client: appears when THIS browser is logged in -->
-  <div id="client" class="hidden">
-    <div class="mat-card" style="background:linear-gradient(135deg,#e8eaf6,#e0f2f1)">
-      <p style="margin:0">Signed in as <b id="who"></b> <span id="role" class="mat-chip running"></span>
-        <button onclick="logout()" class="mat-btn tonal sm" style="float:right">Log out</button>
-      </p>
-    </div>
-    <h2 style="margin:4px 2px 10px">Mail client — what next?</h2>
-    <div class="mat-grid-2">
-      <a href="./wizard.html" class="mat-btn accent block" style="padding:16px">＋ New campaign</a>
-      <a href="./dashboard.html" class="mat-btn tonal block" style="padding:16px">📊 Dashboard</a>
-      <a href="./reports.html" class="mat-btn tonal block" style="padding:16px">📑 Reports</a>
-      <a id="usersCard" href="./users.html" class="hidden mat-btn tonal block" style="padding:16px">👥 Users</a>
-    </div>
-    <div id="gmailBox" class="mat-card" style="margin-top:12px"></div>
+    <p class="mat-muted" style="text-align:center;margin-bottom:0">No account? Ask your admin to create one for you.</p>
   </div>
 </div>
 <script src="./app.js"></script>
 <script>
+// Landing page = login only. Already signed in? Go straight to the app.
 async function check() {
-  const msg = document.getElementById('msg');
   try {
     const s = await api('/auth/status');
-    if (s.loggedIn) {
-      document.getElementById('who').textContent = s.userName + ' (' + s.userEmail + ')';
-      document.getElementById('role').textContent = s.role;
-      document.getElementById('client').classList.remove('hidden');
-      document.getElementById('loginBox').classList.add('hidden');
-      if (s.role === 'admin') document.getElementById('usersCard').classList.remove('hidden');
-      gmailBox(s);
-    } else {
-      document.getElementById('loginBox').classList.remove('hidden');
-    }
-  } catch (e) { msg.textContent = 'Error: ' + e.message; }
+    if (s.loggedIn) location.href = './dashboard.html';
+  } catch (e) { /* stay on login, message below if needed */ }
 }
-async function gmailBox(s) {
-  const box = document.getElementById('gmailBox');
-  if (!s.googleConfigured) { box.textContent = 'Google login not set up (.env keys missing).'; return; }
-  box.innerHTML = s.googleConnected
-    ? 'Gmail sender: <b>' + escapeHtml(s.googleEmail) + '</b>' +
-      (s.role === 'admin' ? ' <button onclick="reconnect()" class="mat-btn tonal sm">Reconnect</button>' : '')
-    : 'No Gmail sender connected yet.' +
-      (s.role === 'admin' ? ' <a href="./auth/google" class="mat-btn primary sm">Connect Gmail</a>' : ' (ask your admin)');
-}
-function reconnect() { location.href = './auth/google'; }
 async function doLogin() {
   const msg = document.getElementById('msg');
+  msg.textContent = 'Signing in…';
   try {
     await api('/auth/login', { method: 'POST', body: JSON.stringify({
       email: document.getElementById('l_email').value,
       password: document.getElementById('l_pass').value }) });
-    location.reload();
+    location.href = './dashboard.html';
   } catch (e) { msg.textContent = e.message; }
-}
-async function logout() {
-  await api('/auth/logout', { method: 'POST' });
-  location.reload();
 }
 check();
 </script>
