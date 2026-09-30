@@ -52,7 +52,7 @@ router.post('/', async (req, res, next) => {
       b.daily_cap ?? 400, b.cap_action || 'pause',
       b.window_enabled ? 1 : 0, b.window_start || '09:00', b.window_end || '18:00',
       b.window_tz || 'Asia/Dhaka', b.dry_run ? 1 : 0);
-    const cid = r.lastInsertRowid;
+    const cid = Number(r.lastInsertRowid); // Number() = safe on every Node version
     const ins = db.prepare('INSERT OR IGNORE INTO recipients (campaign_id, email, name, data_json) VALUES (?,?,?,?)');
     const tx = db.transaction((list) => {
       for (const p of list) ins.run(cid, p._email.toLowerCase(), p._name || '', JSON.stringify(p));

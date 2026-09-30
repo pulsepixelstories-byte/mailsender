@@ -1,16 +1,36 @@
 // ============================================================
 // db.js - SQLite database (one file: data/app.db).
+// Uses Node's BUILT-IN node:sqlite (no install, no compilation),
+// so it works everywhere: your Mac, Hostinger, Render, VPS.
 // Creates all tables on startup. Progress survives restarts.
 // ============================================================
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
+// Built into Node 22.5+ - nothing to install, nothing to compile.
+const { DatabaseSync } = require('node:sqlite');
 
 const dataDir = path.join(__dirname, '..', 'data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-const db = new Database(path.join(dataDir, 'app.db'));
-db.pragma('journal_mode = WAL');
+// readBigInts:false keeps counts/ids as plain numbers (JSON-safe).
+const db = new DatabaseSync(path.join(dataDir, 'app.db'), { readBigInts: false });
+
+// Safer if the computer crashes mid-write.
+db.exec('PRAGMA journal_mode = WAL');
+
+// Tiny transaction helper (same shape as the old library used).
+// Usage: const save = db.transaction((list) => { ... }); save(list);
+db.transaction = (fn) => (...args) => {
+  db.exec('BEGIN');
+  try {
+    const out = fn(...args);
+    db.exec('COMMIT');
+    return out;
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch (e2) { /* already rolled back */ }
+    throw e;
+  }
+};
 
 // ONE Gmail account (refresh token encrypted).
 db.exec(`
@@ -101,8 +121,7 @@ const defaults = {
   sender_name: 'Business Mail Sender',
   footer: 'Reply STOP to unsubscribe.',
 };
-for (const [k, v] of Object.entries(defaults)) {
-  db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run(k, v);
-}
+const fillDefault = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+for (const [k, v] of Object.entries(defaults)) fillDefault.run(k, v);
 
 module.exports = db;

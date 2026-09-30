@@ -79,10 +79,11 @@ function retryFailedCampaign(campaignId) {
     c.name + ' (retry failed)', c.sheet_id, c.sheet_tab, c.email_col, c.col_map_json, c.subject, c.body_html,
     c.footer, c.write_back, c.mode, c.min_delay_sec, c.max_delay_sec, c.batch_size,
     c.batch_delay_min_sec, c.batch_delay_max_sec, c.batch_pause_min, c.daily_cap, c.cap_action);
+  const newId = Number(r.lastInsertRowid); // Number() = safe on every Node version
   const ins = db.prepare("INSERT OR IGNORE INTO recipients (campaign_id, email, name, data_json) VALUES (?,?,?,?)");
-  const tx = db.transaction((list) => { for (const p of list) ins.run(r.lastInsertRowid, p.email, p.name, p.data_json); });
+  const tx = db.transaction((list) => { for (const p of list) ins.run(newId, p.email, p.name, p.data_json); });
   tx(failed);
-  return r.lastInsertRowid;
+  return newId;
 }
 
 module.exports = { getReport, buildCsv, buildPrintableHtml, uploadToDrive, emailSummary, retryFailedCampaign };
