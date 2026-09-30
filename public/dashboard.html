@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Business Mail Sender - Dashboard</title><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="bg-gray-100 min-h-screen"><div class="max-w-3xl mx-auto p-4">
-<nav class="flex flex-wrap gap-3 text-sm my-2">
-  <a href="./" class="underline text-blue-600">Home</a><b>Dashboard</b>
-  <a href="./wizard.html" class="underline text-blue-600">New campaign</a>
-  <a href="./reports.html" class="underline text-blue-600">Reports</a>
-  <a id="usersNav" href="./users.html" class="hidden underline text-blue-600">Users</a>
-  <a href="./settings.html" class="underline text-blue-600">Settings</a>
-</nav>
-<h1 class="text-2xl font-bold my-2">Dashboard</h1>
-<div id="today" class="bg-white p-4 rounded shadow mb-3">Loading today's count...</div>
-<div id="list" class="bg-white p-4 rounded shadow">Loading campaigns...</div>
+<title>Business Mail Sender - Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<link rel="stylesheet" href="./styles/app.css" />
+</head>
+<body class="mat"><div class="mat-wrap">
+<div class="mat-appbar">
+  <h1>📊 Dashboard</h1>
+  <p>Today's progress and recent campaigns</p>
+  <nav class="mat-nav">
+    <a href="./">Home</a><b>Dashboard</b>
+    <a href="./wizard.html">New campaign</a>
+    <a href="./reports.html">Reports</a>
+    <a id="usersNav" href="./users.html" class="hidden">Users</a>
+    <a href="./settings.html">Settings</a>
+  </nav>
+</div>
+<div class="mat-card"><div id="today">Loading today's count...</div></div>
+<div class="mat-card"><div id="list">Loading campaigns...</div></div>
 </div>
 <script src="./app.js"></script>
 <script>
@@ -21,15 +28,15 @@ async function load() {
   try {
     const d = await api('/api/dashboard');
     document.getElementById('today').innerHTML =
-      'Sent today: <b>' + d.sentToday + '</b> / cap <b>' + d.dailyCap + '</b>' +
-      '<div class="bg-gray-200 h-3 rounded mt-1"><div class="bg-green-600 h-3 rounded" style="width:' +
+      '<h2>Today</h2>Sent today: <b>' + d.sentToday + '</b> / cap <b>' + d.dailyCap + '</b>' +
+      '<div class="mat-progress" style="margin-top:8px"><div style="width:' +
       Math.min(100, Math.round(d.sentToday / d.dailyCap * 100)) + '%"></div></div>' +
-      '<p class="text-xs text-gray-500 mt-1">Connected: ' + escapeHtml(d.email || 'not yet') + '</p>';
-    document.getElementById('list').innerHTML = '<h2 class="font-bold mb-2">Recent campaigns</h2>' +
-      (d.campaigns.map(c => '<div class="border-b py-2 text-sm flex justify-between"><span><b>' + escapeHtml(c.name) +
-      '</b> <span class="text-xs bg-gray-200 px-2 rounded">' + escapeHtml(c.status) + '</span><br/><span class="text-gray-500">sent ' +
-      c.counts.sent + '/' + c.total + '</span></span><span><a class="underline text-blue-600" href="./live.html?id=' + c.id + '">Live</a> ' +
-      '<a class="underline text-green-700" href="./report.html?id=' + c.id + '">Report</a></span></div>').join('') || '<p class="text-gray-500">None yet. <a class="underline" href="./wizard.html">Create one</a>.</p>');
+      '<p class="mat-muted" style="margin:6px 0 0">Connected: ' + escapeHtml(d.email || 'not yet') + '</p>';
+    document.getElementById('list').innerHTML = '<h2>Recent campaigns</h2>' +
+      (d.campaigns.map(c => '<div class="mat-row"><span><b>' + escapeHtml(c.name) +
+      '</b> <span class="mat-chip ' + escapeHtml(c.status) + '">' + escapeHtml(c.status) + '</span><br/><span class="mat-muted">sent ' +
+      c.counts.sent + '/' + c.total + '</span></span><span><a class="mat-link" href="./live.html?id=' + c.id + '">Live</a> ' +
+      '<a class="mat-link" href="./report.html?id=' + c.id + '">Report</a></span></div>').join('') || '<p class="mat-muted">None yet. <a class="mat-link" href="./wizard.html">Create one</a>.</p>');
   } catch (e) { document.getElementById('today').textContent = 'Error: ' + e.message; }
 }
 load();

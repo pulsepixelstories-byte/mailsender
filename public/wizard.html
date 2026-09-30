@@ -1,62 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Business Mail Sender - New campaign</title><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="bg-gray-100 min-h-screen"><div class="max-w-3xl mx-auto p-4">
-<nav class="flex flex-wrap gap-3 text-sm my-2">
-  <a href="./" class="underline text-blue-600">Home</a>
-  <a href="./dashboard.html" class="underline text-blue-600">Dashboard</a>
-  <b>New campaign</b>
-  <a href="./reports.html" class="underline text-blue-600">Reports</a>
-  <a id="usersNav" href="./users.html" class="hidden underline text-blue-600">Users</a>
-  <a href="./settings.html" class="underline text-blue-600">Settings</a>
-</nav>
-<h1 class="text-2xl font-bold my-3">New campaign wizard</h1>
-<div class="bg-white p-4 rounded shadow mb-3">
-  <h2 class="font-bold">Step 1 — Choose sheet</h2>
-  <input id="sheet" class="border p-2 w-full rounded mt-1" placeholder="Paste Google Sheet URL or ID" />
-  <div class="flex gap-2 mt-2">
-    <button onclick="findTabs()" class="bg-gray-200 px-3 py-2 rounded text-sm">Find tabs</button>
-    <select id="tab" class="border p-2 rounded flex-1"><option value="">-- tab --</option></select>
-    <button onclick="preview()" class="bg-gray-200 px-3 py-2 rounded text-sm">Preview 10 rows</button>
+<title>Business Mail Sender - New campaign</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<link rel="stylesheet" href="./styles/app.css" />
+</head>
+<body class="mat"><div class="mat-wrap">
+<div class="mat-appbar">
+  <h1>✉️ New campaign wizard</h1>
+  <p>Sheet → compose → settings → launch</p>
+  <nav class="mat-nav">
+    <a href="./">Home</a>
+    <a href="./dashboard.html">Dashboard</a>
+    <b>New campaign</b>
+    <a href="./reports.html">Reports</a>
+    <a id="usersNav" href="./users.html" class="hidden">Users</a>
+    <a href="./settings.html">Settings</a>
+  </nav>
+</div>
+<div class="mat-card">
+  <h2>Step 1 — Choose sheet</h2>
+  <label class="mat-field"><span>Google Sheet link or ID</span>
+    <input id="sheet" class="mat-input" placeholder="Paste Google Sheet URL or ID" />
+  </label>
+  <div class="mat-actions">
+    <button onclick="findTabs()" class="mat-btn tonal sm">Find tabs</button>
+    <select id="tab" class="mat-input" style="flex:1;min-width:140px"><option value="">-- tab --</option></select>
+    <button onclick="preview()" class="mat-btn tonal sm">Preview 10 rows</button>
   </div>
-  <p id="prev" class="text-sm text-gray-600 mt-2"></p>
+  <p id="prev" class="mat-muted"></p>
 </div>
-<div class="bg-white p-4 rounded shadow mb-3">
-  <h2 class="font-bold">Step 2 — Map email column</h2>
-  <select id="emailCol" class="border p-2 w-full rounded"></select>
-  <p class="text-xs text-gray-500 mt-1">Every other column becomes a placeholder like {{name}}.</p>
+<div class="mat-card">
+  <h2>Step 2 — Map email column</h2>
+  <select id="emailCol" class="mat-input"></select>
+  <p class="mat-muted">Every other column becomes a placeholder like {{name}}.</p>
 </div>
-<div class="bg-white p-4 rounded shadow mb-3">
-  <h2 class="font-bold">Step 3 — Compose</h2>
-  <input id="cname" class="border p-2 w-full rounded mt-1" placeholder="Campaign name" />
-  <input id="subj" class="border p-2 w-full rounded mt-2" placeholder="Subject, e.g. Hello {{name|there}}" />
-  <div id="phBtns" class="flex flex-wrap gap-1 my-2"></div>
-  <textarea id="body" rows="6" class="border p-2 w-full rounded" placeholder="<p>Hi {{name|there}}, ...</p>"></textarea>
-  <button onclick="livePreview()" class="bg-gray-200 px-3 py-1 rounded text-sm mt-1">Live preview (first row)</button>
-  <div id="livePrev" class="border p-2 rounded mt-2 text-sm bg-gray-50"></div>
-  <label class="text-sm block mt-2">Footer (opt-out line, auto-appended)</label>
-  <input id="footer" class="border p-2 w-full rounded" value="Reply STOP to unsubscribe." />
-  <p class="text-xs text-amber-700 mt-1">Only email people who agreed to receive email.</p>
+<div class="mat-card">
+  <h2>Step 3 — Compose</h2>
+  <label class="mat-field"><span>Campaign name</span>
+    <input id="cname" class="mat-input" placeholder="e.g. March newsletter" />
+  </label>
+  <label class="mat-field"><span>Subject (try {{name|there}})</span>
+    <input id="subj" class="mat-input" placeholder="Subject, e.g. Hello {{name|there}}" />
+  </label>
+  <div id="phBtns" class="mat-actions" style="margin:8px 0"></div>
+  <label class="mat-field"><span>Message (HTML allowed)</span>
+    <textarea id="body" rows="6" class="mat-input" placeholder="<p>Hi {{name|there}}, ...</p>"></textarea>
+  </label>
+  <button onclick="livePreview()" class="mat-btn tonal sm">Live preview (first row)</button>
+  <div id="livePrev" class="mat-card" style="background:#fafbfe;margin:10px 0 0"></div>
+  <label class="mat-field" style="margin-top:10px"><span>Footer (opt-out line, auto-appended)</span>
+    <input id="footer" class="mat-input" value="Reply STOP to unsubscribe." />
+  </label>
+  <p class="mat-muted">⚠️ Only email people who agreed to receive email.</p>
 </div>
-<div class="bg-white p-4 rounded shadow mb-3">
-  <h2 class="font-bold">Step 4 — Sending settings</h2>
-  <div class="grid grid-cols-2 gap-2 mt-1 text-sm">
-    <label>Mode <select id="mode" class="border p-2 w-full rounded"><option value="buffered">Buffered (random delay each)</option><option value="batch">Batch</option></select></label>
-    <label>Daily cap <input id="cap" type="number" value="400" class="border p-2 w-full rounded" /></label>
-    <label>Min delay s <input id="mind" type="number" value="30" class="border p-2 w-full rounded" /></label>
-    <label>Max delay s <input id="maxd" type="number" value="90" class="border p-2 w-full rounded" /></label>
+<div class="mat-card">
+  <h2>Step 4 — Sending settings</h2>
+  <div class="mat-grid-2">
+    <label class="mat-field"><span>Mode</span><select id="mode" class="mat-input"><option value="buffered">Buffered (random delay each)</option><option value="batch">Batch</option></select></label>
+    <label class="mat-field"><span>Daily cap</span><input id="cap" type="number" value="400" class="mat-input" /></label>
+    <label class="mat-field"><span>Min delay (sec)</span><input id="mind" type="number" value="30" class="mat-input" /></label>
+    <label class="mat-field"><span>Max delay (sec)</span><input id="maxd" type="number" value="90" class="mat-input" /></label>
   </div>
-  <label class="text-sm"><input type="checkbox" id="dryrun" /> Dry run (timing only, sends nothing)</label>
+  <label style="font-size:0.85rem"><input type="checkbox" id="dryrun" /> Dry run (timing only, sends nothing)</label>
 </div>
-<div class="bg-white p-4 rounded shadow">
-  <h2 class="font-bold">Step 5 — Review & launch</h2>
-  <p id="eta" class="text-sm text-gray-600"></p>
-  <div class="flex gap-2 mt-2">
-    <button onclick="createDraft()" class="bg-green-600 text-white px-4 py-2 rounded">Create draft</button>
-    <button onclick="sendTest()" class="bg-gray-200 px-4 py-2 rounded">Send test to myself</button>
+<div class="mat-card">
+  <h2>Step 5 — Review &amp; launch</h2>
+  <p id="eta" class="mat-muted"></p>
+  <div class="mat-actions" style="margin-top:10px">
+    <button onclick="createDraft()" class="mat-btn success">Create draft</button>
+    <button onclick="sendTest()" class="mat-btn tonal">Send test to myself</button>
   </div>
-  <p id="msg" class="text-sm mt-2"></p>
+  <p id="msg" class="mat-msg"></p>
 </div>
 </div>
 <script src="./app.js"></script>
@@ -76,7 +92,7 @@ async function preview() {
   lastPreview = p;
   document.getElementById('prev').innerHTML = 'Rows <b>' + p.total + '</b>, valid <b>' + p.validCount + '</b>, invalid ' + p.invalid + ', dupes ' + p.duplicates;
   document.getElementById('emailCol').innerHTML = p.headers.map(h => '<option>' + escapeHtml(h) + '</option>').join('');
-  document.getElementById('phBtns').innerHTML = p.headers.map(h => '<button onclick="insPh(\'' + escapeHtml(h) + '\')" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{{' + escapeHtml(h) + '}}</button>').join('');
+  document.getElementById('phBtns').innerHTML = p.headers.map(h => '<button onclick="insPh(\'' + escapeHtml(h) + '\')" class="mat-btn tonal sm">{{' + escapeHtml(h) + '}}</button>').join('');
   const n = Math.ceil(p.validCount * 60 / 60);
   document.getElementById('eta').textContent = 'Rough estimate at ~60s/email: about ' + Math.round(p.validCount * 60 / 60) + ' min for ' + p.validCount + ' emails.';
 }
@@ -92,7 +108,7 @@ async function createDraft() {
     daily_cap: +val('cap'), min_delay_sec: +val('mind'), max_delay_sec: +val('maxd'), dry_run: document.getElementById('dryrun').checked };
   const r = await api('/api/campaigns', { method: 'POST', body: JSON.stringify(body) });
   draftId = r.id;
-  document.getElementById('msg').innerHTML = 'Draft ' + r.id + ' created, imported ' + r.imported + '. <a class="underline" href="./live.html?id=' + r.id + '">Go to live page</a>';
+  document.getElementById('msg').innerHTML = 'Draft ' + r.id + ' created, imported ' + r.imported + '. <a class="mat-link" href="./live.html?id=' + r.id + '">Go to live page →</a>';
 }
 async function sendTest() {
   if (!draftId) return alert('Create draft first');
