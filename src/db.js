@@ -110,7 +110,8 @@ db.exec(`
 `);
 
 // App login accounts with roles (admin/user). Passwords stored as scrypt hash.
-// First visitor creates the admin account (see POST /auth/setup-admin).
+// A default admin is seeded below so the owner can always log in.
+// Only admins can add/remove users (see src/routes/users.js).
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,6 +122,16 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
 `);
+
+// Default admin account (email + password given to the owner).
+// INSERT OR IGNORE = created once, never overwritten, safe on restarts.
+const { hashPassword } = require('./utils/password');
+try {
+  db.prepare("INSERT OR IGNORE INTO users (name, email, password_hash, role) VALUES ('Administrator', 'admin', ?, 'admin')")
+    .run(hashPassword('admin123'));
+} catch (e) {
+  console.error('[db] default admin seed failed:', e.message);
+}
 
 // Global settings (Settings screen).
 db.exec(`

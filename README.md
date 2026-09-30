@@ -58,10 +58,13 @@ Health: `http://localhost:3001/health` → `{"status":"ok"}`.
 Stop later: `pkill -f "node src/server.js"`.
 
 ## Accounts & roles (login first, then the app)
-- First visit shows **Create admin account** (name + email + password). That person is the **admin**.
+- Default admin (already created for you — use this to log in first):
+  - Email: `admin`
+  - Password: `admin123`
+  - After logging in, change it in **Settings → Change my password**.
 - After that, everyone logs in with email + password. No login = only the login page opens; everything else bounces back to it.
 - **User** role: can use the whole app (sheets, campaigns, sending, reports, settings, own password change). No Users menu.
-- **Admin** role: everything above, plus the **Users** page (add users as admin/user, remove users — never yourself, never the last admin) and Gmail connect/disconnect.
+- **Admin** role: everything above, plus the **Users** page. ONLY admins can add users (pick admin/user role) or remove them — never yourself, never the last admin.
 - Connecting the Gmail sender is separate: admin opens Home → Connect Gmail → Allow (Google login). App users then send through it.
 
 ## Use each screen (click path)
