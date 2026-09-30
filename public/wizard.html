@@ -71,6 +71,7 @@
   <div class="mat-actions" style="margin-top:10px">
     <button onclick="createDraft()" class="mat-btn success">Create draft</button>
     <button onclick="sendTest()" class="mat-btn tonal">Send test to myself</button>
+    <button onclick="startCampaign()" class="mat-btn primary">▶ Start campaign</button>
   </div>
   <p id="msg" class="mat-msg"></p>
 </div>
@@ -109,11 +110,25 @@ async function createDraft() {
   const r = await api('/api/campaigns', { method: 'POST', body: JSON.stringify(body) });
   draftId = r.id;
   document.getElementById('msg').innerHTML = 'Draft ' + r.id + ' created, imported ' + r.imported + '. <a class="mat-link" href="./live.html?id=' + r.id + '">Go to live page →</a>';
+  return r.id;
 }
 async function sendTest() {
   if (!draftId) return alert('Create draft first');
   const r = await api('/api/campaigns/' + draftId + '/test', { method: 'POST' });
   document.getElementById('msg').textContent = 'Test sent to ' + r.to;
+}
+async function startCampaign() {
+  const msg = document.getElementById('msg');
+  try {
+    if (!draftId) {
+      msg.textContent = 'Creating draft first…';
+      await createDraft();
+    }
+    msg.textContent = 'Starting campaign ' + draftId + '…';
+    const r = await api('/api/sends/' + draftId + '/start', { method: 'POST' });
+    msg.innerHTML = 'Sending started (status: ' + escapeHtml(r.status) + '). ' +
+      '<a class="mat-link" href="./live.html?id=' + draftId + '">Watch live progress →</a>';
+  } catch (e) { msg.textContent = 'Could not start: ' + e.message; }
 }
 function val(id) { return document.getElementById(id).value; }
 </script>
