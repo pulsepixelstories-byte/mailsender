@@ -1,0 +1,2 @@
+# mailsender
+automatic mail sender
