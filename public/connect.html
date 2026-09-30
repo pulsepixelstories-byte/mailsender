@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Mail Sender - Connect mail</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+<link rel="stylesheet" href="./styles/app.css" />
+</head>
+<body class="mat"><div class="mat-wrap narrow">
+<div class="mat-appbar" style="text-align:center">
+  <div style="font-size:2.4rem">📮</div>
+  <h1>Connect mail account</h1>
+  <p>This Gmail sends all your campaigns</p>
+  <nav class="mat-nav" style="justify-content:center">
+    <b>Connect</b>
+    <a href="./dashboard.html">Dashboard</a>
+    <a href="./wizard.html">New campaign</a>
+    <a href="./reports.html">Reports</a>
+    <a id="usersNav" href="./users.html" class="hidden">Users</a>
+    <a href="./settings.html">Settings</a>
+  </nav>
+</div>
+<div class="mat-card" style="text-align:center">
+  <div id="status" style="font-size:2rem">…</div>
+  <p id="detail" class="mat-muted">Checking connection…</p>
+  <div id="actions" class="hidden" style="margin-top:12px"></div>
+  <p id="msg" class="mat-msg"></p>
+  <p class="mat-muted">Official Google login (OAuth2) — no passwords stored. Only an admin can connect or change the sender.</p>
+</div>
+</div>
+<script src="./app.js"></script>
+<script>
+guard(); // auth gate: redirect to login if not signed in
+async function load() {
+  const detail = document.getElementById('detail');
+  const actions = document.getElementById('actions');
+  const status = document.getElementById('status');
+  try {
+    const s = await api('/auth/status');
+    const isAdmin = s.role === 'admin';
+    if (!s.googleConfigured) {
+      status.textContent = '⚠️';
+      detail.textContent = 'Google login is not set up yet (server keys missing).';
+      return;
+    }
+    if (s.googleConnected) {
+      status.textContent = '✅';
+      detail.innerHTML = 'Sender mail: <b>' + escapeHtml(s.googleEmail) + '</b><br/>All campaigns send from this address.';
+      if (isAdmin) actions.innerHTML =
+        '<a href="./auth/google" class="mat-btn tonal">Reconnect mail account</a> ' +
+        '<button onclick="disconnect()" class="mat-btn danger sm">Disconnect</button>';
+    } else {
+      status.textContent = '📭';
+      detail.textContent = 'No sender mail connected yet.';
+      if (isAdmin) actions.innerHTML = '<a href="./auth/google" class="mat-btn primary block">Connect mail account</a>';
+      else detail.textContent += ' Ask your admin to connect one.';
+    }
+    actions.classList.remove('hidden');
+  } catch (e) { detail.textContent = 'Error: ' + e.message; }
+}
+async function disconnect() {
+  if (!confirm('Disconnect the sender mail? Sending stops until an admin reconnects.')) return;
+  try {
+    await api('/auth/disconnect', { method: 'POST' });
+    location.reload();
+  } catch (e) { document.getElementById('msg').textContent = e.message; }
+}
+load();
+</script>
+</body>
+</html>

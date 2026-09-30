@@ -23,6 +23,7 @@ app.use('/api/users', require('./routes/users'));
 const GATED_PAGES = [
   '/dashboard.html', '/wizard.html', '/live.html',
   '/reports.html', '/report.html', '/settings.html', '/users.html',
+  '/connect.html',
 ];
 app.get(GATED_PAGES, requireLoginPage);
 app.use('/api', requireApiLogin);

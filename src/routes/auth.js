@@ -52,8 +52,11 @@ router.get('/status', (req, res) => {
   });
 });
 
-// Start Google connect (must be logged into the app first).
-router.get('/google', gate.requireApiLogin, (req, res) => {
+// Start Google connect - ADMIN ONLY (sender mail belongs to everyone).
+// Page-friendly: browsers get redirected/text, not raw JSON.
+router.get('/google', (req, res) => {
+  if (!gate.isLoggedIn(req)) return res.redirect('/');
+  if (!gate.isAdmin(req)) return res.status(403).send('Only an admin can connect the sender mail.');
   if (!googleAuth.isConfigured()) {
     return res.status(500).send('Google login not set up. Paste GOOGLE_CLIENT_ID + SECRET into .env, then restart.');
   }
@@ -64,7 +67,8 @@ router.get('/google', gate.requireApiLogin, (req, res) => {
 });
 
 // Google returns here with ?code=. Only works right after /google (same browser).
-router.get('/google/callback', gate.requireApiLogin, async (req, res) => {
+router.get('/google/callback', async (req, res) => {
+  if (!gate.isLoggedIn(req)) return res.redirect('/');
   try {
     if (!req.query.code) return res.status(400).send('Google did not return a code. Try again.');
     const redirectUri = req.session.oauthRedirectUri || config.google.redirectUri;

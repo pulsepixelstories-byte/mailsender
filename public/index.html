@@ -35,8 +35,9 @@
 async function check() {
   try {
     const s = await api('/auth/status');
-    if (s.loggedIn) location.href = './dashboard.html';
-  } catch (e) { /* stay on login, message below if needed */ }
+    // Signed in? First stop: connect page (sender mail), else dashboard.
+    if (s.loggedIn) location.href = s.googleConnected ? './dashboard.html' : './connect.html';
+  } catch (e) { /* stay on login */ }
 }
 async function doLogin() {
   const msg = document.getElementById('msg');
@@ -45,7 +46,7 @@ async function doLogin() {
     await api('/auth/login', { method: 'POST', body: JSON.stringify({
       email: document.getElementById('l_email').value,
       password: document.getElementById('l_pass').value }) });
-    location.href = './dashboard.html';
+    location.reload(); // check() routes: connect page first, else dashboard
   } catch (e) { msg.textContent = e.message; }
 }
 check();
