@@ -1,0 +1,13 @@
+# Block browsers from opening secrets/code via Apache (folder is under htdocs).
+<FilesMatch "^\.env">
+  Require all denied
+</FilesMatch>
+<DirectoryMatch ".*data.*">
+  Require all denied
+</DirectoryMatch>
+<DirectoryMatch ".*(src|node_modules|tests|scripts).*">
+  Require all denied
+</DirectoryMatch>
+<FilesMatch "^(package\.json|package-lock\.json)$">
+  Require all denied
+</FilesMatch>

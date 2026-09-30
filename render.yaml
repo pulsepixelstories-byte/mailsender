@@ -1,0 +1,28 @@
+# Render deploy config (Infrastructure as Code).
+# Plain English: when you connect this repo to Render, it reads this file
+# and knows how to build + start the app. Secrets are entered in the
+# Render dashboard (Environment tab), NEVER in this file.
+services:
+  - type: web
+    name: business-mail-sender
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_REDIRECT_URI
+        value: https://business-mail-sender.onrender.com/auth/google/callback
+        # NOTE: after Render gives you the real URL, update this value
+        # in the dashboard (or here) to match it exactly.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        sync: false
+        # Must be EXACTLY 32 chars - paste your local .env value here.
+        # (Render's auto-generator makes the wrong length, so enter manually.)

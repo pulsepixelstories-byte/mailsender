@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Mail Sender - Report</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-gray-100 min-h-screen"><div class="max-w-3xl mx-auto p-4">
+<a href="./reports.html" class="text-blue-600 underline text-sm">&larr; Reports</a>
+<h1 class="text-2xl font-bold my-2">Confirmation report</h1>
+<div id="box" class="bg-white p-4 rounded shadow">Loading...</div>
+</div>
+<script src="./app.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get('id');
+async function load() {
+  const r = await api('/api/reports/' + id);
+  document.getElementById('box').innerHTML =
+    '<h2 class="font-bold">' + escapeHtml(r.campaign.name) + ' (' + escapeHtml(r.campaign.status) + ')</h2>' +
+    '<p class="text-sm text-gray-600">From ' + escapeHtml(r.senderEmail) + ' | Tab ' + escapeHtml(r.campaign.sheet_tab) +
+    ' | ' + escapeHtml(r.campaign.started_at || '') + ' → ' + escapeHtml(r.campaign.finished_at || '') + '</p>' +
+    '<p class="my-2">Total <b>' + r.total + '</b>, sent <b class="text-green-700">' + r.byStatus.sent + '</b>, failed <b class="text-red-600">' + r.byStatus.failed + '</b>, skipped ' + r.byStatus.skipped + ', rate ' + r.successRate + '%</p>' +
+    '<div class="flex flex-wrap gap-2 text-sm">' +
+    '<a class="bg-gray-200 px-3 py-2 rounded" href="/api/reports/' + id + '/csv">Download CSV</a>' +
+    '<a class="bg-gray-200 px-3 py-2 rounded" target="_blank" href="/api/reports/' + id + '/print">Print / PDF</a>' +
+    '<button onclick="drive()" class="bg-gray-200 px-3 py-2 rounded">Save to Drive</button>' +
+    '<button onclick="emailMe()" class="bg-gray-200 px-3 py-2 rounded">Email me summary</button>' +
+    '<button onclick="retryF()" class="bg-blue-600 text-white px-3 py-2 rounded">Retry failed only</button></div>' +
+    '<p id="m" class="text-sm mt-1"></p>' +
+    '<h3 class="font-bold mt-3">Recipients</h3>' +
+    r.people.slice(0, 200).map(p => '<div class="text-xs border-b py-1 flex justify-between"><span>' + escapeHtml(p.email) + '</span><span>' + escapeHtml(p.status) + ' ' + escapeHtml(p.error_message || '').slice(0, 60) + '</span></div>').join('');
+}
+async function drive() { const r = await api('/api/reports/' + id + '/drive', { method: 'POST' }); document.getElementById('m').textContent = 'Saved to Drive ✓'; }
+async function emailMe() { const r = await api('/api/reports/' + id + '/email', { method: 'POST' }); document.getElementById('m').textContent = 'Emailed to ' + r.to; }
+async function retryF() { const r = await api('/api/reports/' + id + '/retry-failed', { method: 'POST' }); document.getElementById('m').innerHTML = 'New campaign ' + r.newId + ' created. <a class="underline" href="./live.html?id=' + r.newId + '">Open it</a>'; }
+load();
+</script>
+</body>
+</html>

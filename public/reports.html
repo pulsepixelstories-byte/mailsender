@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business Mail Sender - Reports</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-gray-100 min-h-screen"><div class="max-w-3xl mx-auto p-4">
+<nav class="flex gap-3 text-sm my-2"><a href="./dashboard.html" class="underline">Dashboard</a><b>Reports</b></nav>
+<h1 class="text-2xl font-bold my-2">Reports</h1>
+<div id="list" class="bg-white p-4 rounded shadow">Loading...</div>
+</div>
+<script src="./app.js"></script>
+<script>
+async function load() {
+  const d = await api('/api/reports');
+  document.getElementById('list').innerHTML = d.reports.map(r =>
+    '<div class="border-b py-2 text-sm flex justify-between"><span><b>' + escapeHtml(r.name) + '</b> (' + escapeHtml(r.status) + ')<br/>' +
+    '<span class="text-gray-500">sent ' + r.sent + '/' + r.total + ', failed ' + r.failed + '</span></span>' +
+    '<a class="underline text-blue-600" href="./report.html?id=' + r.id + '">View</a></div>').join('')
+    || '<p class="text-gray-500">No campaigns yet.</p>';
+}
+load();
+</script>
+</body>
+</html>
