@@ -25,12 +25,11 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use(errorHandler);
 
 if (require.main === module) {
-  // Local laptop: localhost only (private). Live host (Render/VPS):
-  // NODE_ENV=production listens on all interfaces + host's PORT.
-  const live = process.env.NODE_ENV === 'production';
-  const host = live ? '0.0.0.0' : '127.0.0.1';
-  app.listen(config.port, host, () => {
-    console.log(`Business Mail Sender at http://${host}:${config.port}`);
+  // Listen on all interfaces so hosts (Hostinger Web Apps, Render, VPS)
+  // can route traffic to us. Locally this still opens http://localhost:PORT.
+  // Hosts provide their own PORT env var - we respect it via config.
+  app.listen(config.port, '0.0.0.0', () => {
+    console.log(`Business Mail Sender at http://localhost:${config.port}`);
   });
 }
 module.exports = app;
