@@ -9,7 +9,11 @@ async function api(path, options = {}) {
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-// Auth gate for protected pages: not signed in -> back to login page.
+// Log out from any page's nav bar, then go to the login page.
+async function logoutNav() {
+  try { await api('/auth/logout', { method: 'POST' }); } catch (e) { /* still leave */ }
+  location.href = './';
+}
 // Call guard() first thing in dashboard/wizard/live/reports/settings/users.
 // Also reveals the admin-only Users link in the nav bar.
 async function guard() {
