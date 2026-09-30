@@ -15,6 +15,7 @@
 </div>
 <script src="./app.js"></script>
 <script>
+guard(); // auth gate: redirect to login if not signed in
 async function load() {
   try {
     const d = await api('/api/dashboard');

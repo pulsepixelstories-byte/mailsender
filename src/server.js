@@ -5,6 +5,7 @@ const path = require('path');
 const config = require('./config');
 require('./db');
 const errorHandler = require('./middleware/errorHandler');
+const { requireLoginPage, requireApiLogin } = require('./middleware/requireLogin');
 
 const app = express();
 app.set('trust proxy', 1); // Apache XAMPP -> Node
@@ -15,6 +16,16 @@ app.use(session({
 }));
 
 app.use('/auth', require('./routes/auth'));
+
+// Auth gate: everything below needs a signed-in browser session.
+// Login page (/), /health and /auth/* stay public.
+const GATED_PAGES = [
+  '/dashboard.html', '/wizard.html', '/live.html',
+  '/reports.html', '/report.html', '/settings.html',
+];
+app.get(GATED_PAGES, requireLoginPage);
+app.use('/api', requireApiLogin);
+
 app.use('/api/sheets', require('./routes/sheets'));
 app.use('/api/campaigns', require('./routes/campaigns'));
 app.use('/api/sends', require('./routes/sends'));

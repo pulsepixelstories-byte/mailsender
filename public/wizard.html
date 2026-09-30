@@ -60,6 +60,7 @@
 </div>
 <script src="./app.js"></script>
 <script>
+guard(); // auth gate: redirect to login if not signed in
 let draftId = null, lastPreview = null;
 async function findTabs() {
   const s = document.getElementById('sheet').value.trim();

@@ -8,6 +8,11 @@
 <DirectoryMatch ".*(src|node_modules|tests|scripts).*">
   Require all denied
 </DirectoryMatch>
+# Block pages too: they must go through Node (http://localhost:3001 or
+# http://localhost/mail-sender/) where the login gate runs - not direct files.
+<FilesMatch "\.html$">
+  Require all denied
+</FilesMatch>
 <FilesMatch "^(package\.json|package-lock\.json)$">
   Require all denied
 </FilesMatch>

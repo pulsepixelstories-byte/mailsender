@@ -9,3 +9,11 @@ async function api(path, options = {}) {
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+// Auth gate for protected pages: not signed in -> back to login page.
+// Call guard() first thing in dashboard/wizard/live/reports/settings.
+async function guard() {
+  try {
+    const s = await api('/auth/status');
+    if (!s.loggedIn) location.href = './';
+  } catch (e) { location.href = './'; }
+}

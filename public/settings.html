@@ -25,6 +25,7 @@
 </div>
 <script src="./app.js"></script>
 <script>
+guard(); // auth gate: redirect to login if not signed in
 async function load() {
   const s = await api('/api/settings');
   document.getElementById('cap').value = s.daily_cap;

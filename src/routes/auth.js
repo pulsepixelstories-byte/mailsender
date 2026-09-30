@@ -40,9 +40,24 @@ router.get('/google/callback', async (req, res) => {
 });
 
 // Frontend polls this for button state.
+// connected = a Gmail is saved. loggedIn = THIS browser signed in.
 router.get('/status', (req, res) => {
   const acc = db.prepare('SELECT email, created_at FROM accounts ORDER BY id LIMIT 1').get();
-  res.json({ configured: googleAuth.isConfigured(), connected: Boolean(acc), email: acc?.email || null });
+  const { isLoggedIn } = require('../middleware/requireLogin');
+  res.json({
+    configured: googleAuth.isConfigured(),
+    connected: Boolean(acc),
+    email: acc?.email || null,
+    loggedIn: isLoggedIn(req),
+    sessionEmail: req.session.accountEmail || null,
+  });
+});
+
+// Log out THIS browser only (keeps the saved Gmail for others).
+router.post('/logout', (req, res) => {
+  req.session.accountEmail = null;
+  info('Browser logged out');
+  res.json({ ok: true });
 });
 
 // Disconnect: delete saved tokens (browser session kept, must reconnect).

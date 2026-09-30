@@ -15,6 +15,7 @@
 </div>
 <script src="./app.js"></script>
 <script>
+guard(); // auth gate: redirect to login if not signed in
 async function load() {
   const d = await api('/api/reports');
   document.getElementById('list').innerHTML = d.reports.map(r =>

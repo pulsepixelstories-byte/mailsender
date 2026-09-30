@@ -20,7 +20,8 @@
     <p class="text-gray-600 my-2">Send Gmail to many people from a Google Sheet — slowly and safely.</p>
     <p id="status" class="text-sm my-3">Checking...</p>
     <a id="loginBtn" href="./auth/google" class="inline-block bg-blue-600 text-white px-6 py-3 rounded w-full">Sign in with Google</a>
-    <button id="outBtn" onclick="disconnect()" class="hidden mt-2 text-sm underline text-gray-600">Disconnect</button>
+    <button id="logoutBtn" onclick="logout()" class="hidden mt-2 text-sm underline text-gray-600">Log out (this browser)</button>
+    <button id="outBtn" onclick="disconnect()" class="hidden mt-1 text-xs underline text-red-500">Disconnect Google (removes saved Gmail for everyone)</button>
     <p class="text-xs text-gray-500 mt-3">Only sends to people who agreed to receive email.</p>
   </div>
 
@@ -42,17 +43,23 @@ async function check() {
     const s = await api('/auth/status');
     if (!s.configured) { el.textContent = 'Not set up yet: ask owner to fill Google keys.'; return; }
     if (s.connected) {
-      el.innerHTML = 'Connected as <b>' + escapeHtml(s.email) + '</b>';
-      document.getElementById('loginBtn').textContent = 'Reconnect Google';
+      el.innerHTML = 'Gmail saved: <b>' + escapeHtml(s.email) + '</b>' +
+        (s.loggedIn ? '<br/>This browser is <b>signed in</b>.' : '<br/>This browser is <b>not signed in</b> — click below.');
+      document.getElementById('loginBtn').textContent = s.loggedIn ? 'Reconnect Google' : 'Sign in with Google';
+      document.getElementById('logoutBtn').classList.toggle('hidden', !s.loggedIn);
       document.getElementById('outBtn').classList.remove('hidden');
-      document.getElementById('client').classList.remove('hidden');
+      document.getElementById('client').classList.toggle('hidden', !s.loggedIn);
     } else el.textContent = 'Not connected. Click Sign in with Google.';
   } catch (e) { el.textContent = 'Error: ' + e.message; }
 }
+async function logout() {
+  await api('/auth/logout', { method: 'POST' });
+  location.reload();
+}
 async function disconnect() {
+  if (!confirm('Remove the saved Gmail for everyone? You will need to sign in again.')) return;
   await api('/auth/disconnect', { method: 'POST' });
-  document.getElementById('client').classList.add('hidden');
-  check();
+  location.reload();
 }
 check();
 </script>
