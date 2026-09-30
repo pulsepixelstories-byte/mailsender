@@ -57,8 +57,16 @@ Open: **http://localhost:3001** (direct) or **http://localhost/mail-sender/** (v
 Health: `http://localhost:3001/health` → `{"status":"ok"}`.
 Stop later: `pkill -f "node src/server.js"`.
 
+## Accounts & roles (login first, then the app)
+- First visit shows **Create admin account** (name + email + password). That person is the **admin**.
+- After that, everyone logs in with email + password. No login = only the login page opens; everything else bounces back to it.
+- **User** role: can use the whole app (sheets, campaigns, sending, reports, settings, own password change). No Users menu.
+- **Admin** role: everything above, plus the **Users** page (add users as admin/user, remove users — never yourself, never the last admin) and Gmail connect/disconnect.
+- Connecting the Gmail sender is separate: admin opens Home → Connect Gmail → Allow (Google login). App users then send through it.
+
 ## Use each screen (click path)
-- **Login** (`/`): click Sign in with Google → Allow → shows your Gmail + Disconnect.
+- **Login** (`/`): first time = create admin; then email + password → mail client buttons appear.
+- **Users** (`users.html`, admin only): list, add (pick role), remove.
 - **Dashboard** (`dashboard.html`): today's sent vs daily cap + recent campaigns.
 - **New campaign** (`wizard.html`): 1 paste sheet link → Find tabs → pick tab → Preview 10 rows. 2 pick Email column. 3 write name/subject/body, click placeholder buttons, Live preview, footer stays. 4 sending settings (buffered 30–90s default; batch 10/batch, 10–25s inside, 15min rest; cap 400; optional window; dry run). 5 Create draft → Send test to myself → open Live page.
 - **Live** (`live.html?id=`): Start (confirm dialog shows ETA) → bar, counts, current email, next-send countdown, log every 3s. Pause/Resume/Cancel anytime.

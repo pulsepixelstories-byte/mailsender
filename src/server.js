@@ -16,12 +16,13 @@ app.use(session({
 }));
 
 app.use('/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
 
 // Auth gate: everything below needs a signed-in browser session.
 // Login page (/), /health and /auth/* stay public.
 const GATED_PAGES = [
   '/dashboard.html', '/wizard.html', '/live.html',
-  '/reports.html', '/report.html', '/settings.html',
+  '/reports.html', '/report.html', '/settings.html', '/users.html',
 ];
 app.get(GATED_PAGES, requireLoginPage);
 app.use('/api', requireApiLogin);

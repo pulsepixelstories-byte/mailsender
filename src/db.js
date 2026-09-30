@@ -109,6 +109,19 @@ db.exec(`
   );
 `);
 
+// App login accounts with roles (admin/user). Passwords stored as scrypt hash.
+// First visitor creates the admin account (see POST /auth/setup-admin).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT DEFAULT 'user',
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
 // Global settings (Settings screen).
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (

@@ -10,10 +10,15 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 // Auth gate for protected pages: not signed in -> back to login page.
-// Call guard() first thing in dashboard/wizard/live/reports/settings.
+// Call guard() first thing in dashboard/wizard/live/reports/settings/users.
+// Also reveals the admin-only Users link in the nav bar.
 async function guard() {
   try {
     const s = await api('/auth/status');
-    if (!s.loggedIn) location.href = './';
+    if (!s.loggedIn) { location.href = './'; return; }
+    if (s.role === 'admin') {
+      const link = document.getElementById('usersNav');
+      if (link) link.classList.remove('hidden');
+    }
   } catch (e) { location.href = './'; }
 }
