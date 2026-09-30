@@ -13,15 +13,23 @@ function isConfigured() { return Boolean(config.google.clientId && config.google
 function makeClient(redirectUri) {
   return new google.auth.OAuth2(config.google.clientId, config.google.clientSecret, redirectUri || config.google.redirectUri);
 }
-// Support both :3001 and /mail-sender callback origins.
+// Works on ANY domain (laptop, Apache subpath, Hostinger, Render) without
+// .env edits: uses the exact address the browser opened. That address must
+// ALSO be registered in Google Console -> Authorized redirect URIs,
+// or Google answers redirect_uri_mismatch.
 function redirectUriForRequest(req) {
   const fallback = config.google.redirectUri;
   try {
-    const host = req.get('host') || '';
-    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0];
+    if (!req) return fallback;
+    const host = (req.get('host') || '').split(',')[0].trim();
+    if (!host) return fallback;
+    const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').split(',')[0].trim();
+    const scheme = proto === 'https' ? 'https' : 'http';
+    // Local Apache proxy serves the app under the /mail-sender/ subpath.
     if (host === 'localhost' || host.startsWith('localhost:80')) {
-      return `${proto}://localhost/mail-sender/auth/google/callback`;
+      return `${scheme}://localhost/mail-sender/auth/google/callback`;
     }
+    return `${scheme}://${host}/auth/google/callback`;
   } catch (e) { /* fallback */ }
   return fallback;
 }
