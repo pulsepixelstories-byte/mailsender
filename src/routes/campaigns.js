@@ -65,6 +65,12 @@ router.post('/', async (req, res, next) => {
   } catch (e) {
     const msg = e?.response?.data?.error?.message || e.message || String(e);
     const code = e?.code ?? e?.status ?? e?.response?.status ?? 0;
+    if (/has not been used|not been used|is disabled|access not configured|service disabled|api.*not.*enabled|enable.*api/i.test(msg)) {
+      const proj = (String(msg).match(/project\s+(\d+)/i) || [])[1] || '';
+      const err = new Error(`Google Sheets API is OFF in your Cloud project${proj ? ` ${proj}` : ''}. Enable it at https://console.cloud.google.com/apis/library/sheets.googleapis.com${proj ? `?project=${proj}` : ''} (same for Gmail + Drive APIs), wait 1 min, retry. (${String(msg).slice(0, 300)})`);
+      err.status = 403;
+      return next(err);
+    }
     if (code === 404 || /not.?found/i.test(msg)) {
       const err = new Error(`Sheet not found. Check the link, open it in your browser, and Share it with your sender Gmail as Viewer, then try again. (${String(msg).slice(0, 200)})`);
       err.status = 404;
@@ -118,7 +124,9 @@ router.post('/:id/test', async (req, res, next) => {
     const data = sample ? { ...JSON.parse(sample.data_json), email: sample.email, name: sample.name } : { name: 'there' };
     const subj = renderTemplate(c.subject, data);
     const html = renderTemplate(c.body_html, data) + `<br/><br/>---<br/><small>${c.footer}</small>`;
-    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email);
+    let senderName = '';
+    try { senderName = db.prepare("SELECT value FROM settings WHERE key='sender_name'").get()?.value || ''; } catch (e) { /* default */ }
+    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email, { senderName, replyTo: auth.email });
     logEvent(c.id, null, 'test', 'Test sent to ' + auth.email);
     res.json({ ok: true, messageId: msgId, to: auth.email });
   } catch (e) { next(new Error('Test send failed: ' + e.message)); }

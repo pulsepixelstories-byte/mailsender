@@ -22,7 +22,18 @@ function googleMessage(e) {
 function friendlySheetsError(e, action, id, tab) {
   const status = Number(googleStatus(e) || 0);
   const msg = googleMessage(e);
-  const detail = msg.slice(0, 200);
+  const detail = msg.slice(0, 300);
+  const proj = (msg.match(/project\s+(\d+)/i) || [])[1] || '';
+  const enableSuffix = proj ? ` (project ${proj}: https://console.cloud.google.com/apis/library/sheets.googleapis.com?project=${proj})` : '';
+  if (/has not been used|not been used|is disabled|access not configured|service disabled|api.*not.*enabled|enable.*api/i.test(msg)) {
+    const err = new Error(
+      `Google Sheets API is OFF in your Cloud project${proj ? ` ${proj}` : ''}. Fix in 1 min: open ` +
+      `https://console.cloud.google.com/apis/library/sheets.googleapis.com${proj ? `?project=${proj}` : ''} → click Enable. ` +
+      `Do the same for Gmail API and Drive API (same project!), wait 1 min, then click Find tabs again.${enableSuffix} (${detail})`
+    );
+    err.status = 403;
+    return err;
+  }
   if (status === 404 || /not.?found|requested entity was not found/i.test(msg)) {
     const err = new Error(
       `Sheet not found (ID ${id || '?'}). 1) Paste the full link like https://docs.google.com/spreadsheets/d/ID/edit. ` +

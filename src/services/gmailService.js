@@ -9,9 +9,12 @@ function cleanHtml(dirty) {
     allowedAttributes: { a: ['href'], '*': ['style'] },
   });
 }
-async function sendEmail(oauthClient, to, subject, htmlBody, fromEmail) {
+async function sendEmail(oauthClient, to, subject, htmlBody, fromEmail, opts = {}) {
   const safe = cleanHtml(htmlBody);
-  const raw = buildMime({ to, from: fromEmail, subject, html: safe });
+  const raw = buildMime({
+    to, from: fromEmail, senderName: opts.senderName || '', replyTo: opts.replyTo || fromEmail,
+    subject, html: safe,
+  });
   const res = await google.gmail({ version: 'v1', auth: oauthClient }).users.messages.send({
     userId: 'me', requestBody: { raw },
   });
