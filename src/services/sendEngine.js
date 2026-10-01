@@ -23,9 +23,7 @@ function sentToday() {
 function sender() {
   const acc = db.prepare('SELECT * FROM accounts ORDER BY id LIMIT 1').get();
   if (!acc) throw new Error('Google not connected.');
-  let senderName = '';
-  try { senderName = db.prepare("SELECT value FROM settings WHERE key='sender_name'").get()?.value || ''; } catch (e) { /* default */ }
-  return { client: clientFromTokens(JSON.parse(decrypt(acc.tokens_encrypted))), email: acc.email, senderName };
+  return { client: clientFromTokens(JSON.parse(decrypt(acc.tokens_encrypted))), email: acc.email };
 }
 // Interruptible sleep so Pause/Cancel react within 2s.
 async function patientSleep(totalSec, campaignId) {
@@ -54,7 +52,7 @@ async function runCampaign(campaignId) {
     db.prepare("UPDATE recipients SET status='pending' WHERE campaign_id=? AND status='queued'").run(campaignId);
     db.prepare("UPDATE campaigns SET status='running', started_at=COALESCE(started_at, datetime('now')) WHERE id=?").run(campaignId);
     logEvent(campaignId, null, 'start', `${camp.mode} dry=${camp.dry_run} cap=${camp.daily_cap}`);
-    const { client, email: from, senderName } = sender();
+    const { client, email: from } = sender();
     let inBatch = 0;
 
     while (true) {
@@ -117,7 +115,7 @@ async function runCampaign(campaignId) {
         logEvent(campaignId, p.id, 'sent', `DRY RUN to ${p.email}`);
       } else {
         try {
-          const msgId = await sendEmail(client, p.email, subject, html, from, { senderName, replyTo: from });
+          const msgId = await sendEmail(client, p.email, subject, html, from);
           db.prepare("UPDATE recipients SET status='sent', gmail_message_id=?, sent_at=datetime('now'), attempts=attempts+1 WHERE id=?").run(msgId, p.id);
           logEvent(campaignId, p.id, 'sent', p.email);
           if (c.write_back) {

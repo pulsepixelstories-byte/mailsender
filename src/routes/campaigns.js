@@ -124,9 +124,7 @@ router.post('/:id/test', async (req, res, next) => {
     const data = sample ? { ...JSON.parse(sample.data_json), email: sample.email, name: sample.name } : { name: 'there' };
     const subj = renderTemplate(c.subject, data);
     const html = renderTemplate(c.body_html, data) + `<br/><br/>---<br/><small>${c.footer}</small>`;
-    let senderName = '';
-    try { senderName = db.prepare("SELECT value FROM settings WHERE key='sender_name'").get()?.value || ''; } catch (e) { /* default */ }
-    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email, { senderName, replyTo: auth.email });
+    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email);
     logEvent(c.id, null, 'test', 'Test sent to ' + auth.email);
     res.json({ ok: true, messageId: msgId, to: auth.email });
   } catch (e) { next(new Error('Test send failed: ' + e.message)); }
