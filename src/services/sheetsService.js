@@ -2,15 +2,35 @@
 const { google } = require('googleapis');
 const { detectEmailColumn } = require('../utils/validators');
 
+// Quote a tab name for A1 notation: 'My Tab' ('' escapes a quote).
+// Always quoting is valid ('Sheet1' works like Sheet1) and fixes
+// "Unable to parse range" for names with spaces/symbols.
+function quoteTab(tabName) {
+  return `'${String(tabName || '').replace(/'/g, "''")}'`;
+}
+
+function colToLetter(idx) {
+  let n = idx + 1;
+  let s = '';
+  while (n > 0) {
+    const mod = (n - 1) % 26;
+    s = String.fromCharCode(65 + mod) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
 async function listTabs(oauthClient, spreadsheetId) {
-  const meta = await google.sheets({ version: 'v4', auth: oauthClient }).spreadsheets.get({ spreadsheetId });
+  const meta = await google.sheets({ version: 'v4', auth: oauthClient }).spreadsheets.get({
+    spreadsheetId, fields: 'sheets.properties.title',
+  });
   return (meta.data.sheets || []).map((s) => s.properties.title);
 }
 
 // Returns { headers, rows, emailIdx }. Each row: {col: val, _email, _name, _row}.
 async function readTab(oauthClient, spreadsheetId, tabName) {
   const res = await google.sheets({ version: 'v4', auth: oauthClient }).spreadsheets.values.get({
-    spreadsheetId, range: tabName,
+    spreadsheetId, range: quoteTab(tabName),
   });
   const values = res.data.values || [];
   if (values.length < 2) return { headers: values[0] || [], rows: [], emailIdx: -1 };
@@ -40,23 +60,23 @@ async function writeBack(oauthClient, spreadsheetId, tabName, headers, updates) 
   const missing = wanted.filter((w) => !headers.map((h) => h.toLowerCase()).includes(w.toLowerCase()));
   if (missing.length) {
     // Append missing headers at end of header row.
-    const startCol = String.fromCharCode(65 + headers.length) + '1';
+    const startCol = `${colToLetter(headers.length)}1`;
     await sheets.spreadsheets.values.update({
-      spreadsheetId, range: `${tabName}!${startCol}`,
+      spreadsheetId, range: `${quoteTab(tabName)}!${startCol}`,
       valueInputOption: 'RAW', requestBody: { values: [missing] },
     });
     headers = headers.concat(missing);
   }
   const idx = (n) => headers.findIndex((h) => h.toLowerCase() === n.toLowerCase());
   const sIdx = idx('Status'), tIdx = idx('Sent At'), eIdx = idx('Error');
-  const colLetter = (i) => String.fromCharCode(65 + i);
+  const q = quoteTab(tabName);
   const data = updates.map((u) => ([
-    { range: `${tabName}!${colLetter(sIdx)}${u.row}`, values: [[u.status]] },
-    { range: `${tabName}!${colLetter(tIdx)}${u.row}`, values: [[u.sentAt || '']] },
-    { range: `${tabName}!${colLetter(eIdx)}${u.row}`, values: [[u.error || '']] },
+    { range: `${q}!${colToLetter(sIdx)}${u.row}`, values: [[u.status]] },
+    { range: `${q}!${colToLetter(tIdx)}${u.row}`, values: [[u.sentAt || '']] },
+    { range: `${q}!${colToLetter(eIdx)}${u.row}`, values: [[u.error || '']] },
   ])).flat();
   if (!data.length) return;
   await sheets.spreadsheets.values.batchUpdate({ spreadsheetId, requestBody: { valueInputOption: 'RAW', data } });
 }
 
-module.exports = { listTabs, readTab, writeBack };
+module.exports = { listTabs, readTab, writeBack, quoteTab, colToLetter };

@@ -84,20 +84,37 @@ guard(); // auth gate: redirect to login if not signed in
 let draftId = null, lastPreview = null;
 async function findTabs() {
   const s = document.getElementById('sheet').value.trim();
+  const prev = document.getElementById('prev');
   if (!s) return alert('Paste sheet link first');
-  const d = await api('/api/sheets/tabs?sheetId=' + encodeURIComponent(s));
-  document.getElementById('tab').innerHTML = d.tabs.map(t => '<option>' + escapeHtml(t) + '</option>').join('');
+  prev.textContent = 'Looking for tabs…';
+  try {
+    const d = await api('/api/sheets/tabs?sheetId=' + encodeURIComponent(s));
+    if (!d.tabs || !d.tabs.length) {
+      prev.textContent = 'Sheet opened but has no tabs. Check the link opens a real Google Sheet.';
+      return;
+    }
+    document.getElementById('tab').innerHTML = d.tabs.map(t => '<option>' + escapeHtml(t) + '</option>').join('');
+    prev.textContent = 'Found ' + d.tabs.length + ' tab(s). Pick one, then click Preview 10 rows.';
+  } catch (e) {
+    prev.textContent = 'Could not find sheet: ' + e.message;
+  }
 }
 async function preview() {
   const s = document.getElementById('sheet').value.trim();
   const t = document.getElementById('tab').value;
-  const p = await api('/api/sheets/preview', { method: 'POST', body: JSON.stringify({ sheetId: s, tab: t }) });
-  lastPreview = p;
-  document.getElementById('prev').innerHTML = 'Rows <b>' + p.total + '</b>, valid <b>' + p.validCount + '</b>, invalid ' + p.invalid + ', dupes ' + p.duplicates;
-  document.getElementById('emailCol').innerHTML = p.headers.map(h => '<option>' + escapeHtml(h) + '</option>').join('');
-  document.getElementById('phBtns').innerHTML = p.headers.map(h => '<button onclick="insPh(\'' + escapeHtml(h) + '\')" class="mat-btn tonal sm">{{' + escapeHtml(h) + '}}</button>').join('');
-  const n = Math.ceil(p.validCount * 60 / 60);
-  document.getElementById('eta').textContent = 'Rough estimate at ~60s/email: about ' + Math.round(p.validCount * 60 / 60) + ' min for ' + p.validCount + ' emails.';
+  const prev = document.getElementById('prev');
+  if (!t) { prev.textContent = 'Click Find tabs first, then pick a tab.'; return; }
+  prev.textContent = 'Reading "' + t + '"…';
+  try {
+    const p = await api('/api/sheets/preview', { method: 'POST', body: JSON.stringify({ sheetId: s, tab: t }) });
+    lastPreview = p;
+    prev.innerHTML = 'Rows <b>' + p.total + '</b>, valid <b>' + p.validCount + '</b>, invalid ' + p.invalid + ', dupes ' + p.duplicates;
+    document.getElementById('emailCol').innerHTML = p.headers.map(h => '<option>' + escapeHtml(h) + '</option>').join('');
+    document.getElementById('phBtns').innerHTML = p.headers.map(h => '<button onclick="insPh(\'' + escapeHtml(h) + '\')" class="mat-btn tonal sm">{{' + escapeHtml(h) + '}}</button>').join('');
+    document.getElementById('eta').textContent = 'Rough estimate at ~60s/email: about ' + Math.round(p.validCount * 60 / 60) + ' min for ' + p.validCount + ' emails.';
+  } catch (e) {
+    prev.textContent = 'Could not read sheet: ' + e.message;
+  }
 }
 function insPh(h) { document.getElementById('body').value += '{{' + h + '}}'; }
 function livePreview() {

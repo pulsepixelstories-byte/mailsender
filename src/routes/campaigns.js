@@ -30,7 +30,8 @@ router.post('/', async (req, res, next) => {
   if (!b.subject?.trim()) return res.status(400).json({ error: 'Subject required' });
   if (!b.body_html?.trim()) return res.status(400).json({ error: 'Message required' });
   const sheetId = extractSheetId(b.sheet_id || '');
-  if (!sheetId || !b.sheet_tab) return res.status(400).json({ error: 'Choose sheet + tab first' });
+  if (!sheetId) return res.status(400).json({ error: 'That doesn\'t look like a Google Sheet link. Paste the full link (https://docs.google.com/spreadsheets/d/.../edit).' });
+  if (!b.sheet_tab) return res.status(400).json({ error: 'Choose sheet + tab first' });
   const auth = getClient(res); if (!auth) return;
   try {
     const { headers, rows } = await readTab(auth.client, sheetId, b.sheet_tab);
@@ -61,7 +62,26 @@ router.post('/', async (req, res, next) => {
     const imported = db.prepare("SELECT COUNT(*) n FROM recipients WHERE campaign_id=?").get(cid).n;
     logEvent(cid, null, 'import', `Imported ${imported} (invalid ${invalid}, dupes ${duplicates})`);
     res.json({ id: cid, imported, invalid, duplicates });
-  } catch (e) { next(new Error('Import failed: ' + e.message)); }
+  } catch (e) {
+    const msg = e?.response?.data?.error?.message || e.message || String(e);
+    const code = e?.code ?? e?.status ?? e?.response?.status ?? 0;
+    if (code === 404 || /not.?found/i.test(msg)) {
+      const err = new Error(`Sheet not found. Check the link, open it in your browser, and Share it with your sender Gmail as Viewer, then try again. (${String(msg).slice(0, 200)})`);
+      err.status = 404;
+      return next(err);
+    }
+    if (code === 403 || /permission|forbidden|access|insufficient/i.test(msg)) {
+      const err = new Error(`No access to this sheet. Share it with your sender Gmail as Viewer and try again. (${String(msg).slice(0, 200)})`);
+      err.status = 403;
+      return next(err);
+    }
+    if (/unable to parse range|invalid argument|range/i.test(msg)) {
+      const err = new Error(`Tab "${b.sheet_tab}" was not found. Click Find tabs again and pick from the list. (${String(msg).slice(0, 200)})`);
+      err.status = 400;
+      return next(err);
+    }
+    next(new Error('Import failed: ' + msg));
+  }
 });
 
 // LIST with counts.
