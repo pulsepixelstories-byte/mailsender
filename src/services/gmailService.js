@@ -11,10 +11,12 @@ function cleanHtml(dirty) {
 }
 async function sendEmail(oauthClient, to, subject, htmlBody, fromEmail, opts = {}) {
   const safe = cleanHtml(htmlBody);
-  // Sender name falls back to the email itself inside buildMime.
-  // Minimal Gmail headers only — Gmail stamps Date/Message-ID/DKIM.
+  // Yahoo bulk-sender compliance: Reply-To + List-Unsubscribe (one-click).
+  // Without List-Unsubscribe Yahoo rejects with 5.7.9 policy errors.
   const raw = buildMime({
     to, from: fromEmail, senderName: opts.senderName || '',
+    replyTo: opts.replyTo || fromEmail,
+    unsubscribeMailto: opts.unsubscribeMailto || fromEmail,
     subject, html: safe,
   });
   const res = await google.gmail({ version: 'v1', auth: oauthClient }).users.messages.send({

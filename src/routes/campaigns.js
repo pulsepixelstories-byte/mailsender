@@ -123,8 +123,9 @@ router.post('/:id/test', async (req, res, next) => {
     const sample = db.prepare('SELECT * FROM recipients WHERE campaign_id=? ORDER BY id LIMIT 1').get(c.id);
     const data = sample ? { ...JSON.parse(sample.data_json), email: sample.email, name: sample.name } : { name: 'there' };
     const subj = renderTemplate(c.subject, data);
-    const html = renderTemplate(c.body_html, data) + `<br/><br/>---<br/><small>${c.footer}</small>`;
-    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email);
+    const senderName = db.prepare("SELECT value FROM settings WHERE key='sender_name'").get()?.value || '';
+    const html = renderTemplate(c.body_html, data) + `<br/><br/>---<br/><small>${c.footer}<br/>From: ${auth.email} &middot; <a href="mailto:${auth.email}?subject=unsubscribe">Unsubscribe</a></small>`;
+    const msgId = await sendEmail(auth.client, auth.email, '[TEST] ' + subj, html, auth.email, { senderName, replyTo: auth.email, unsubscribeMailto: auth.email });
     logEvent(c.id, null, 'test', 'Test sent to ' + auth.email);
     res.json({ ok: true, messageId: msgId, to: auth.email });
   } catch (e) { next(new Error('Test send failed: ' + e.message)); }

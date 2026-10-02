@@ -23,7 +23,26 @@ function sentToday() {
 function sender() {
   const acc = db.prepare('SELECT * FROM accounts ORDER BY id LIMIT 1').get();
   if (!acc) throw new Error('Google not connected.');
-  return { client: clientFromTokens(JSON.parse(decrypt(acc.tokens_encrypted))), email: acc.email };
+  let senderName = '';
+  try {
+    senderName = db.prepare("SELECT value FROM settings WHERE key='sender_name'").get()?.value || '';
+  } catch (e) { /* settings table may not exist yet */ }
+  return { client: clientFromTokens(JSON.parse(decrypt(acc.tokens_encrypted))), email: acc.email, senderName };
+}
+// Yahoo/AOL throttle hard (421 4.7.0 TSS04, 554 5.7.9 policy). Extra per-domain
+// pacing keeps us under their radar; Gmail/Outlook addresses use normal pacing.
+function isYahooDomain(email) {
+  const d = String(email || '').split('@')[1]?.toLowerCase().trim() || '';
+  return d === 'yahoo.com' || d.endsWith('.yahoo.com') || d === 'yahoo.co.uk' || d.endsWith('.yahoo.co.')
+    || d === 'aol.com' || d === 'ymail.com' || d === 'rocketmail.com' || d === 'att.net' || d === 'sbcglobal.net';
+}
+// Yahoo's typical rejections: deferrals (421/TSS), policy blocks (554 5.7.9),
+// spam blocks (BL/DNSBL). These are transient -> retry with long backoff,
+// never instant-fail on first hit.
+function yahooBackoffSec(msg, attempts) {
+  if (/tss0?4|temporarily deferred|421\s*4\.7|try again later/i.test(msg)) return 600 * Math.min(attempts, 3); // 10/20/30 min
+  if (/5\.7\.9|not accepted for policy|policy reasons/i.test(msg)) return 900; // 15 min
+  return backoffSec(attempts);
 }
 // Interruptible sleep so Pause/Cancel react within 2s.
 async function patientSleep(totalSec, campaignId) {
@@ -52,8 +71,9 @@ async function runCampaign(campaignId) {
     db.prepare("UPDATE recipients SET status='pending' WHERE campaign_id=? AND status='queued'").run(campaignId);
     db.prepare("UPDATE campaigns SET status='running', started_at=COALESCE(started_at, datetime('now')) WHERE id=?").run(campaignId);
     logEvent(campaignId, null, 'start', `${camp.mode} dry=${camp.dry_run} cap=${camp.daily_cap}`);
-    const { client, email: from } = sender();
+    const { client, email: from, senderName } = sender();
     let inBatch = 0;
+    let yahooDeferrals = 0;
 
     while (true) {
       const c = db.prepare('SELECT * FROM campaigns WHERE id=?').get(campaignId);
@@ -108,14 +128,19 @@ async function runCampaign(campaignId) {
       try { data = JSON.parse(p.data_json || '{}'); } catch (e) { /* ignore */ }
       data.email = p.email; data.name = p.name || data.name || '';
       const subject = renderTemplate(c.subject, data);
-      const html = renderTemplate(c.body_html, data) + `<br/><br/>---<br/><small>${c.footer || ''}<br/>From: ${from}</small>`;
+      // Visible one-click unsubscribe in the body: Yahoo requires BOTH the
+      // List-Unsubscribe header AND a clearly visible unsubscribe option.
+      const footerHtml = c.footer || '';
+      const html = renderTemplate(c.body_html, data)
+        + `<br/><br/>---<br/><small>${footerHtml}<br/>From: ${from} &middot; <a href="mailto:${from}?subject=unsubscribe">Unsubscribe</a></small>`;
 
       if (c.dry_run) {
         db.prepare("UPDATE recipients SET status='sent', sent_at=datetime('now'), error_message='DRY RUN' WHERE id=?").run(p.id);
         logEvent(campaignId, p.id, 'sent', `DRY RUN to ${p.email}`);
       } else {
         try {
-          const msgId = await sendEmail(client, p.email, subject, html, from);
+          const msgId = await sendEmail(client, p.email, subject, html, from, { senderName, replyTo: from, unsubscribeMailto: from });
+          yahooDeferrals = 0; // success resets the deferral streak
           db.prepare("UPDATE recipients SET status='sent', gmail_message_id=?, sent_at=datetime('now'), attempts=attempts+1 WHERE id=?").run(msgId, p.id);
           logEvent(campaignId, p.id, 'sent', p.email);
           if (c.write_back) {
@@ -124,14 +149,30 @@ async function runCampaign(campaignId) {
         } catch (e) {
           const msg = String(e.message || e).slice(0, 400);
           const attempts = (p.attempts || 0) + 1;
+          const isYahooMsg = /tss0?4|temporarily deferred|421\s*4\.7|5\.7\.9|not accepted for policy|policy reasons|\[BL|\b452\b|too many messages|complaint/i.test(msg);
+          // Yahoo deferral/policy: transient -> long backoff + keep queued.
+          // After 3 deferrals in a row, pause the campaign so Yahoo can cool
+          // down instead of burning the sender reputation.
+          if (isYahooMsg && attempts <= 5) {
+            yahooDeferrals++;
+            const wait = yahooBackoffSec(msg, attempts);
+            db.prepare("UPDATE recipients SET status='pending', attempts=?, next_try_at=datetime('now', '+' || ? || ' seconds'), error_message=? WHERE id=?").run(attempts, wait, 'Yahoo retry in ' + wait + 's: ' + msg, p.id);
+            logEvent(campaignId, p.id, 'retry', `Yahoo deferral (attempt ${attempts}, backoff ${wait}s): ${msg}`);
+            if (yahooDeferrals >= 3) {
+              db.prepare("UPDATE campaigns SET status='paused' WHERE id=?").run(campaignId);
+              logEvent(campaignId, p.id, 'auto_pause', `Yahoo deferred ${yahooDeferrals}x in a row — paused 30+ min before resuming. Lower daily pace for yahoo/aol addresses.`);
+              break;
+            }
+          } else if (isYahooMsg) {
+            db.prepare("UPDATE recipients SET status='failed', attempts=?, error_message=? WHERE id=?").run(attempts, 'Yahoo refused after retries: ' + msg, p.id);
+            logEvent(campaignId, p.id, 'failed', 'Yahoo refused after retries: ' + msg);
           // Auth/quota: pause whole campaign with clear message.
-          if (/invalid_grant|unauthorized|quota|exceed|403|forbidden/i.test(msg)) {
+          } else if (/invalid_grant|unauthorized|quota|exceed|403|forbidden/i.test(msg)) {
             db.prepare("UPDATE recipients SET status='pending', attempts=?, error_message=? WHERE id=?").run(attempts, msg, p.id);
             db.prepare("UPDATE campaigns SET status='paused' WHERE id=?").run(campaignId);
             logEvent(campaignId, p.id, 'auto_pause', msg);
             break;
-          }
-          if (/429|rate|5\d\d|timeout|network/i.test(msg) && attempts <= 3) {
+          } else if (/429|rate|5\d\d|timeout|network/i.test(msg) && attempts <= 3) {
             const wait = backoffSec(attempts);
             db.prepare("UPDATE recipients SET status='pending', attempts=?, next_try_at=datetime('now', '+' || ? || ' seconds'), error_message=? WHERE id=?").run(attempts, wait, 'retry in ' + wait + 's: ' + msg, p.id);
             logEvent(campaignId, p.id, 'retry', `Attempt ${attempts}, backoff ${wait}s: ${msg}`);
@@ -142,9 +183,12 @@ async function runCampaign(campaignId) {
         }
       }
       inBatch++;
-      const wait = c.mode === 'batch'
+      let wait = c.mode === 'batch'
         ? batchInnerDelay(c.batch_delay_min_sec, c.batch_delay_max_sec)
         : bufferedDelay(c.min_delay_sec, c.max_delay_sec);
+      // Extra Yahoo/AOL pacing: their MX throttles bulk from a single Gmail
+      // sender. Minimum ~60s between Yahoo-family recipients avoids TSS04.
+      if (isYahooDomain(p.email)) wait = Math.max(wait, 60 + Math.random() * 30);
       runners.set(campaignId + ':nextIn', Math.round(wait));
       await patientSleep(wait, campaignId);
     }
@@ -177,4 +221,4 @@ function liveState(campaignId) {
   };
 }
 
-module.exports = { runCampaign, liveState, sentToday, isRunning: (id) => runners.has(Number(id)) };
+module.exports = { runCampaign, liveState, sentToday, isRunning: (id) => runners.has(Number(id)), isYahooDomain, yahooBackoffSec };
